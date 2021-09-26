@@ -26,9 +26,9 @@ def clockwise_walking(anchor_point, start_point=None):
         yield point
 
 def algorithm_suzuki(mask):
-    marker = 1
-    for i in range(mask.shape[0]):
-        for j in range(1, mask.shape[1]):
+    marker = 2
+    for i in range(1,mask.shape[0]-2):
+        for j in range(1, mask.shape[1]-2):
             start_point = None
             if mask[i, j - 1] == 0 and mask[i, j] == 1:
                 start_point = (i, j - 1)
@@ -38,17 +38,22 @@ def algorithm_suzuki(mask):
                 anchor_point = (i, j)
                 init_points = None
                 last_searching_point = None
-
+                flag = False
                 for searching_point in clockwise_walking(anchor_point, start_point):
                     if mask[searching_point] == 1:
                         init_points = (anchor_point, searching_point)
                         last_searching_point = searching_point
+                        flag = True
                         break
+                if not flag:
+                    continue
                 end = False
-                marker += 1
+                # marker += 1
                 while not end:
 
                     for searching_point in counterclockwise_walking(anchor_point, last_searching_point):
+                        if searching_point[0] == mask.shape[0]-1 or searching_point[1] == mask.shape[1]-1:
+                            continue
                         if mask[searching_point] != 0:
                             if mask[anchor_point[0], anchor_point[1] + 1] != 0 and mask[anchor_point] == 1:
                                 mask[anchor_point] = marker
@@ -66,6 +71,7 @@ def algorithm_suzuki(mask):
                                 anchor_point = searching_point
                                 print(mask)
                                 break
+    return mask
 
 
 
@@ -77,7 +83,7 @@ if __name__ == '__main__':
     mask = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
                      [0, 0, 1, 1, 1, 1, 1, 0],
                      [0, 0, 1, 1, 1, 1, 1, 0],
-                     [0, 0, 1, 1, 0, 1, 1, 0],
+                     [0, 0, 1, 1, 1, 1, 1, 0],
                      [0, 0, 1, 1, 1, 1, 1, 0],
                      [0, 0, 1, 1, 1, 1, 1, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0]])

@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from core.image import Image
+from core.alg_suzuki import algorithm_suzuki
 
 
 class ImageSegmentation:
@@ -14,7 +15,19 @@ class ImageSegmentation:
 
     def __select__object(self):
         mask_hue = cv.inRange(self.image.img, self.lvl_lower, self.lvl_upper)
-        self.image.img = cv.bitwise_and(self.image.img, self.image.img, mask=mask_hue)
+
+        mask_hue = np.where(mask_hue == 255, 1, mask_hue)
+        print(mask_hue.max())
+        mask = algorithm_suzuki(mask_hue)
+        print(mask)
+        for i in range(mask_hue.shape[0]):
+            for j in range(mask_hue.shape[1]):
+                if mask[i, j] == 2:
+                    self.image.img[i, j] = np.array([255, 255, 255])
+                else:
+                    self.image.img[i, j] = np.array([0, 0, 0])
+                print(mask_hue[i,j])
+        # self.image.img = cv.bitwise_and(self.image.img, self.image.img, mask=mask_hue)
 
     def run(self):
         self.__select__object()

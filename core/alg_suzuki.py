@@ -30,11 +30,11 @@ def algorithm_suzuki(mask):
                 end = False
                 while not end:
                     for searching_point in counterclockwise_walking(anchor_point, last_searching_point):
-                        if mask[searching_point] == 1:
-                            if mask[anchor_point] == 1:
+                        if mask[searching_point] != 0:
+                            if mask[anchor_point[0], anchor_point[1] + 1] != 0 and mask[anchor_point] == 1:
                                 mask[anchor_point] = 2
-                            # elif mask[anchor_point[0], anchor_point[1] + 1] == 0:
-                            #     mask[anchor_point] = -2
+                            elif mask[anchor_point[0], anchor_point[1] + 1] == 0:
+                                mask[anchor_point] = -2
 
 
                             if searching_point == init_points[0] and anchor_point == init_points[1]:

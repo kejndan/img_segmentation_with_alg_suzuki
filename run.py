@@ -2,18 +2,34 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 
+from core.image import Image
 
-def show_image(image, title=None, cmap=None):
-    if cmap is not None:
-        plt.imshow(np.uint8(image),cmap=cmap)
-    else:
-        plt.imshow(np.uint8(image))
-    if title is not None:
-        plt.title(title)
 
-    plt.axis('off')
-    plt.show()
+class ImageSegmentation:
+    def __init__(self, image):
+        self.lvl_lower = (40, 20, 30)
+        self.lvl_upper = (75, 190, 240)
+
+        self.image = image
+
+    def __select__object(self):
+        mask_hue = cv.inRange(self.image.img, self.lvl_lower, self.lvl_upper)
+        self.image.img = cv.bitwise_and(self.image.img, self.image.img, mask=mask_hue)
+
+    def run(self):
+        self.__select__object()
+
+    def show_result(self):
+
+        # title = f'H:{self.lvl_hue}'
+        self.image.show_image()
+
 
 if __name__ == '__main__':
-    img = cv.cvtColor(cv.imread('segment.jpg'), cv.COLOR_BGR2HSV)
-    show_image(img)
+    i = Image('segment.jpg', 'HSV')
+    i_segment = ImageSegmentation(i)
+    i_segment.run()
+    i_segment.show_result()
+    # img = cv.inRange(img, np.asarray([cfg.hue_value_lower, 0, 0]), np.asarray([cfg.hue_value_upper, 255, 255]))
+    # print()
+    # show_image(img)

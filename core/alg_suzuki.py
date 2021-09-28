@@ -27,13 +27,31 @@ def clockwise_walking(anchor_point, start_point=None):
 
 def algorithm_suzuki(mask):
     marker = 1
+
+
+    inheritance_tree = {}
     for i in range(1,mask.shape[0]-2):
+        inheritance = [1]
         for j in range(1, mask.shape[1]-2):
             start_point = None
             if mask[i, j - 1] == 0 and mask[i, j] == 1:
                 start_point = (i, j - 1)
             elif mask[i, j] >= 1 and mask[i, j+1] == 0:
                 start_point = (i, j+1)
+            q = mask[i, j]
+            if mask[i, j - 1] == 0 and mask[i, j] > 1:
+                if mask[i,j] == -inheritance[-1]:
+                    inheritance.pop()
+                else:
+                    inheritance.append(mask[i,j])
+            elif mask[i, j] < -1 and mask[i, j+1] == 0:
+                if mask[i,j] == -inheritance[-1]:
+                    inheritance.pop()
+                else:
+                    inheritance.append(mask[i, j])
+
+
+
             if start_point is not None:
                 anchor_point = (i, j)
                 init_points = None
@@ -49,7 +67,7 @@ def algorithm_suzuki(mask):
                     continue
                 end = False
                 marker += 1
-
+                inheritance_tree[marker] = inheritance[:]
                 while not end:
 
                     for searching_point in counterclockwise_walking(anchor_point, last_searching_point):
@@ -75,8 +93,9 @@ def algorithm_suzuki(mask):
                                 anchor_point = searching_point
                                 # print(mask)
                                 break
+                inheritance.append(mask[i, j])
     print(np.unique(mask))
-    return mask
+    return mask, inheritance_tree
 
 
 

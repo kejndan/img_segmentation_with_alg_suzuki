@@ -26,7 +26,7 @@ def clockwise_walking(anchor_point, start_point=None):
         yield point
 
 def algorithm_suzuki(mask):
-    marker = 2
+    marker = 1
     for i in range(1,mask.shape[0]-2):
         for j in range(1, mask.shape[1]-2):
             start_point = None
@@ -48,7 +48,8 @@ def algorithm_suzuki(mask):
                 if not flag:
                     continue
                 end = False
-                # marker += 1
+                marker += 1
+
                 while not end:
 
                     for searching_point in counterclockwise_walking(anchor_point, last_searching_point):
@@ -57,20 +58,24 @@ def algorithm_suzuki(mask):
                         if mask[searching_point] != 0:
                             if mask[anchor_point[0], anchor_point[1] + 1] != 0 and mask[anchor_point] == 1:
                                 mask[anchor_point] = marker
+
+                                print(marker,mask[anchor_point])
                             elif mask[anchor_point[0], anchor_point[1] + 1] == 0:
                                 mask[anchor_point] = -marker
 
+                                print(marker,mask[anchor_point])
 
                             if searching_point == init_points[0] and anchor_point == init_points[1]:
                                 print('END')
                                 end =True
-                                print(mask)
+                                # print(mask)
                                 break
                             else:
                                 last_searching_point = anchor_point
                                 anchor_point = searching_point
-                                print(mask)
+                                # print(mask)
                                 break
+    print(np.unique(mask))
     return mask
 
 

@@ -26,7 +26,7 @@ class ImageSegmentation:
         #
         ic(np.unique(mask_hue))
 
-        mask,_ = algorithm_suzuki(mask_hue.astype(np.int32))
+        mask= algorithm_suzuki(mask_hue.astype(np.int32))
         for i in range(mask_hue.shape[0]):
             for j in range(mask_hue.shape[1]):
                 if mask[i, j] != 0 and mask[i,j] != 1:
@@ -34,7 +34,7 @@ class ImageSegmentation:
                 else:
                     self.image.img[i, j] = np.array([0, 0, 0])
                 print(mask_hue[i,j])
-        self.image.img = cv.bitwise_and(self.image_rgb, self.image_rgb, mask=mask_hue)
+        # self.image.img = cv.bitwise_and(self.image_rgb, self.image_rgb, mask=mask_hue)
 
     def run(self):
         self.__select__object()

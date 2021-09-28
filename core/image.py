@@ -13,12 +13,13 @@ class Image:
 
     def read_image(self, path):
         if self.color_model == 'RGB':
-            convert = cv.COLOR_BGR2HSV
+            convert = cv.COLOR_BGR2RGB
         elif self.color_model == 'HSV':
             convert = cv.COLOR_RGB2HSV
         self.img = cv.cvtColor(cv.imread(path), convert)
 
     def show_image(self, title=None, cmap=None):
+        plt.figure(figsize=(19.2,10.8))
         if cmap is not None:
             plt.imshow(np.uint8(self.img), cmap=cmap)
         else:
@@ -26,6 +27,6 @@ class Image:
         if title is not None:
             plt.title(title)
 
-        plt.axis('off')
+        # plt.axis('off')
         plt.show()
 

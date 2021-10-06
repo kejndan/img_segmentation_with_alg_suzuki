@@ -1,3 +1,4 @@
+import cv2
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,20 +8,25 @@ from utils import clockwise_walking
 
 class ImageSegmentation:
     def __init__(self, image):
-        self.image_hsv = cv.cvtColor(cv.imread(image), cv.COLOR_BGR2HSV)
-        self.image_rgb = cv.cvtColor(self.image_hsv, cv.COLOR_HSV2RGB)
+        self.image_hsv = cv.cvtColor(cv.imread(image), cv.COLOR_BGR2GRAY)
+        self.image_rgb = cv.cvtColor(self.image_hsv, cv.COLOR_GRAY2RGB)
 
         self.lvl_lower_hsv = np.array([32, 40, 0])
         self.lvl_upper_hsv = np.array([80, 210, 160])
+        self.lvl_lower_hsv = np.array([0, 0, 0])
+        self.lvl_upper_hsv = np.array([255, 255, 255])
         self.blur_kernel_size = 21
         self.blur_sigma = 145
 
         self.marker = 1
+        self.lnbd = None
         self.contours = []
+        self.hierarchy = {1:[]}
 
     def _get_mask(self, show=False):
-        blurry_img = cv.GaussianBlur(self.image_hsv, (self.blur_kernel_size, self.blur_kernel_size), self.blur_sigma)
-        self.mask_image = np.where(cv.inRange(blurry_img, self.lvl_lower_hsv, self.lvl_upper_hsv) == 255, 1, 0)
+        # blurry_img = cv.GaussianBlur(self.image_hsv, (self.blur_kernel_size, self.blur_kernel_size), self.blur_sigma)
+        # self.mask_image = np.where(cv.inRange(blurry_img, self.lvl_lower_hsv, self.lvl_upper_hsv) == 255, 1, 0)
+        self.mask_image = np.where(self.image_hsv == 255, 1, 0)
         if show:
             plt.imshow(self.mask_image, cmap='gray')
             plt.show()
@@ -28,6 +34,7 @@ class ImageSegmentation:
 
     def _get_contour(self, show=False):
         for i in range(1, self.mask_image.shape[0] - 1):
+            self.lnbd = 1
             for j in range(1, self.mask_image.shape[1] - 1):
 
                 if self.mask_image[i, j] == 0:
@@ -35,20 +42,28 @@ class ImageSegmentation:
 
                 start_point = None
 
+                if abs(self.mask_image[i, j]) == self.lnbd and self.mask_image[i, j + 1] == 0 and self.marker > 1:
+                    self.lnbd = abs(self.mask_image[i, j]) - 1
+                elif self.mask_image[i, j] != 0 and self.mask_image[i, j] != 1 and self.mask_image[i, j - 1] == 0:
+                    self.lnbd = abs(self.mask_image[i, j])
+
                 if self.mask_image[i, j - 1] == 0 and self.mask_image[i, j] == 1:
                     start_point = (i, j - 1)
+
                 elif self.mask_image[i, j] >= 1 and self.mask_image[i, j + 1] == 0:
                     start_point = (i, j + 1)
-
                 if start_point is None:
                     continue
+
 
                 anchor_point = (i, j)
                 found_point = self.__search_nonzero_pixel(anchor_point, start_point)
                 self.marker += 1
+                self.hierarchy[self.lnbd].append(self.marker)
                 if found_point is not None:
                     init_points = (anchor_point, found_point)
                     self.contours.append([])
+
                     self.__create_contour(init_points)
                     self.contours[-1] = np.asarray(self.contours[-1])
                 else:
@@ -88,7 +103,11 @@ class ImageSegmentation:
                         self.mask_image[anchor_point] = self.marker
                         self.contours[-1].append(list(anchor_point))
                 if found_point == init_points[0] and anchor_point == init_points[1]:
+                    self.lnbd = self.marker
+                    self.hierarchy[self.lnbd] = []
+
                     break
+
                 else:
                     last_searching_point = anchor_point
                     anchor_point = found_point
@@ -118,7 +137,9 @@ class ImageSegmentation:
 
     def run(self):
         self._get_mask(True)
+        mask = np.asarray(self.mask_image*255, dtype=np.uint8)
         self._get_contour(True)
+
         self._get_biggest_boxes(130000).keys()
         self._fill_object()
         self._draw_boxes()

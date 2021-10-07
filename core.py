@@ -21,7 +21,8 @@ class ImageSegmentation:
         self.marker = 1
         self.lnbd = None
         self.contours = []
-        self.hierarchy = {1:[]}
+        self.hierarchy = {}
+        self.type_border = {1:'hole'}
 
     def _get_mask(self, show=False):
         # blurry_img = cv.GaussianBlur(self.image_hsv, (self.blur_kernel_size, self.blur_kernel_size), self.blur_sigma)
@@ -42,24 +43,30 @@ class ImageSegmentation:
 
                 start_point = None
 
-                if abs(self.mask_image[i, j]) == self.lnbd and self.mask_image[i, j + 1] == 0 and self.marker > 1:
-                    self.lnbd = abs(self.mask_image[i, j]) - 1
-                elif self.mask_image[i, j] != 0 and self.mask_image[i, j] != 1 and self.mask_image[i, j - 1] == 0:
-                    self.lnbd = abs(self.mask_image[i, j])
-
                 if self.mask_image[i, j - 1] == 0 and self.mask_image[i, j] == 1:
                     start_point = (i, j - 1)
-
+                    self.type_border[self.marker+1] = 'outer'
                 elif self.mask_image[i, j] >= 1 and self.mask_image[i, j + 1] == 0:
                     start_point = (i, j + 1)
+                    self.type_border[self.marker + 1] = 'hole'
+                
                 if start_point is None:
+                    if self.mask_image[i, j] != 1:
+                        self.lnbd = abs(self.mask_image[i,j])
                     continue
+
+                self.marker += 1
+
+                if self.type_border[self.lnbd] == 'outer' and self.type_border[self.marker] == 'outer'\
+                        or self.type_border[self.lnbd] == 'hole' and self.type_border[self.marker] == 'hole':
+                        self.hierarchy[self.marker] = self.hierarchy[self.lnbd]
+                else:
+                    self.hierarchy[self.marker] = self.lnbd
 
 
                 anchor_point = (i, j)
                 found_point = self.__search_nonzero_pixel(anchor_point, start_point)
-                self.marker += 1
-                self.hierarchy[self.lnbd].append(self.marker)
+
                 if found_point is not None:
                     init_points = (anchor_point, found_point)
                     self.contours.append([])
@@ -68,6 +75,10 @@ class ImageSegmentation:
                     self.contours[-1] = np.asarray(self.contours[-1])
                 else:
                     self.mask_image[anchor_point] = -self.marker
+
+                if self.mask_image[i, j] != 1:
+                    self.lnbd = abs(self.mask_image[i, j])
+
 
         if show:
             img = np.where(self.mask_image == 1, 0, self.mask_image)
@@ -103,9 +114,6 @@ class ImageSegmentation:
                         self.mask_image[anchor_point] = self.marker
                         self.contours[-1].append(list(anchor_point))
                 if found_point == init_points[0] and anchor_point == init_points[1]:
-                    self.lnbd = self.marker
-                    self.hierarchy[self.lnbd] = []
-
                     break
 
                 else:
@@ -134,10 +142,8 @@ class ImageSegmentation:
         for rect in self.boxes.values():
             self.image_rgb = cv.rectangle(self.image_rgb, rect[0], rect[1], (255, 0, 0), 3)
 
-
     def run(self):
         self._get_mask(True)
-        mask = np.asarray(self.mask_image*255, dtype=np.uint8)
         self._get_contour(True)
 
         self._get_biggest_boxes(130000).keys()

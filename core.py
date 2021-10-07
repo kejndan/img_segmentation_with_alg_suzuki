@@ -8,28 +8,30 @@ from utils import clockwise_walking
 
 class ImageSegmentation:
     def __init__(self, image):
-        self.image_hsv = cv.cvtColor(cv.imread(image), cv.COLOR_BGR2GRAY)
-        self.image_rgb = cv.cvtColor(self.image_hsv, cv.COLOR_GRAY2RGB)
+        self.image_hsv = cv.cvtColor(cv.imread(image), cv.COLOR_BGR2HSV)
+        self.image_rgb = cv.cvtColor(self.image_hsv, cv.COLOR_HSV2RGB)
 
         self.lvl_lower_hsv = np.array([32, 40, 0])
         self.lvl_upper_hsv = np.array([80, 210, 160])
-        self.lvl_lower_hsv = np.array([0, 0, 0])
-        self.lvl_upper_hsv = np.array([255, 255, 255])
+
         self.blur_kernel_size = 21
         self.blur_sigma = 145
+        self.bb_square_size = 130000
 
         self.marker = 1
         self.lnbd = None
         self.contours = []
-        self.hierarchy = {}
-        self.type_border = {1:'hole'}
+        self.hierarchy = {1: 1}  # key: child contour, value: parent contour
+        self.type_border = {1: 'hole'}
 
     def _get_mask(self, show=False):
-        # blurry_img = cv.GaussianBlur(self.image_hsv, (self.blur_kernel_size, self.blur_kernel_size), self.blur_sigma)
-        # self.mask_image = np.where(cv.inRange(blurry_img, self.lvl_lower_hsv, self.lvl_upper_hsv) == 255, 1, 0)
-        self.mask_image = np.where(self.image_hsv == 255, 1, 0)
+        blurry_img = cv.GaussianBlur(self.image_hsv, (self.blur_kernel_size, self.blur_kernel_size), self.blur_sigma)
+        self.mask_image = np.where(cv.inRange(blurry_img, self.lvl_lower_hsv, self.lvl_upper_hsv) == 255, 1, 0)
+        # self.mask_image = np.where(self.image_hsv == 255, 1, 0)
         if show:
             plt.imshow(self.mask_image, cmap='gray')
+            plt.title('Image with mask')
+            plt.axis(False)
             plt.show()
         return self.mask_image
 
@@ -45,14 +47,14 @@ class ImageSegmentation:
 
                 if self.mask_image[i, j - 1] == 0 and self.mask_image[i, j] == 1:
                     start_point = (i, j - 1)
-                    self.type_border[self.marker+1] = 'outer'
+                    self.type_border[self.marker + 1] = 'outer'
                 elif self.mask_image[i, j] >= 1 and self.mask_image[i, j + 1] == 0:
                     start_point = (i, j + 1)
                     self.type_border[self.marker + 1] = 'hole'
-                
+
                 if start_point is None:
                     if self.mask_image[i, j] != 1:
-                        self.lnbd = abs(self.mask_image[i,j])
+                        self.lnbd = abs(self.mask_image[i, j])
                     continue
 
                 self.marker += 1
@@ -62,7 +64,6 @@ class ImageSegmentation:
                         self.hierarchy[self.marker] = self.hierarchy[self.lnbd]
                 else:
                     self.hierarchy[self.marker] = self.lnbd
-
 
                 anchor_point = (i, j)
                 found_point = self.__search_nonzero_pixel(anchor_point, start_point)
@@ -79,11 +80,12 @@ class ImageSegmentation:
                 if self.mask_image[i, j] != 1:
                     self.lnbd = abs(self.mask_image[i, j])
 
-
         if show:
             img = np.where(self.mask_image == 1, 0, self.mask_image)
             img = np.where(img != 0, 1, img)
             plt.imshow(img, cmap='gray')
+            plt.title('Contours')
+            plt.axis(False)
             plt.show()
 
     def __search_nonzero_pixel(self, anchor_point, start_point,counter=False):
@@ -120,10 +122,10 @@ class ImageSegmentation:
                     last_searching_point = anchor_point
                     anchor_point = found_point
 
-    def _get_biggest_boxes(self, thr):
+    def _get_biggest_boxes(self, thr, parent):
         boxes = {}
         for contour in self.contours:
-            if len(contour) > 0:
+            if len(contour) > 0 and self.hierarchy[abs(self.mask_image[contour[0][0], contour[0][1]])] == parent:
                 x, y, w, h = cv.boundingRect(contour)
                 start = (y, x)
                 end = (y+h, x+w)
@@ -135,7 +137,6 @@ class ImageSegmentation:
 
     def _fill_object(self):
         for box in self.boxes.values():
-            q = box[2]
             cv.fillPoly(self.image_rgb, [box[2][:, [1, 0]]], color=(255, 0, 255))
 
     def _draw_boxes(self):
@@ -145,11 +146,12 @@ class ImageSegmentation:
     def run(self):
         self._get_mask(True)
         self._get_contour(True)
-
-        self._get_biggest_boxes(130000).keys()
+        self._get_biggest_boxes(self.bb_square_size, parent=1).keys()
         self._fill_object()
         self._draw_boxes()
         plt.imshow(self.image_rgb)
+        plt.title('Final')
+        plt.axis(False)
         plt.show()
 
 

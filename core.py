@@ -1,4 +1,4 @@
-import cv2
+import os
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ from utils import clockwise_walking
 
 
 class ImageSegmentation:
-    def __init__(self, image):
+    def __init__(self, image, show_results=False, save_results=False):
         self.image_hsv = cv.cvtColor(cv.imread(image), cv.COLOR_BGR2HSV)
         self.image_rgb = cv.cvtColor(self.image_hsv, cv.COLOR_HSV2RGB)
 
@@ -24,18 +24,37 @@ class ImageSegmentation:
         self.hierarchy = {1: 1}  # key: child contour, value: parent contour
         self.type_border = {1: 'hole'}
 
-    def _get_mask(self, show=False):
+        self.save_results = save_results
+        self.show_results = show_results
+
+        if save_results and not os.path.exists('results'):
+            os.mkdir('results')
+
+        if self.show_results:
+            plt.imshow(self.image_rgb, cmap='gray')
+            plt.title('Original')
+            plt.axis(False)
+            if self.save_results:
+                plt.savefig('results/original.jpg')
+            plt.show()
+
+    def _get_mask(self):
         blurry_img = cv.GaussianBlur(self.image_hsv, (self.blur_kernel_size, self.blur_kernel_size), self.blur_sigma)
         self.mask_image = np.where(cv.inRange(blurry_img, self.lvl_lower_hsv, self.lvl_upper_hsv) == 255, 1, 0)
         # self.mask_image = np.where(self.image_hsv == 255, 1, 0)
-        if show:
+        if self.show_results:
             plt.imshow(self.mask_image, cmap='gray')
             plt.title('Image with mask')
             plt.axis(False)
+            if self.save_results:
+                plt.savefig('results/img_with_mask.jpg')
             plt.show()
+
+
+
         return self.mask_image
 
-    def _get_contour(self, show=False):
+    def _get_contour(self):
         for i in range(1, self.mask_image.shape[0] - 1):
             self.lnbd = 1
             for j in range(1, self.mask_image.shape[1] - 1):
@@ -80,13 +99,16 @@ class ImageSegmentation:
                 if self.mask_image[i, j] != 1:
                     self.lnbd = abs(self.mask_image[i, j])
 
-        if show:
+        if self.show_results:
             img = np.where(self.mask_image == 1, 0, self.mask_image)
             img = np.where(img != 0, 1, img)
             plt.imshow(img, cmap='gray')
             plt.title('Contours')
             plt.axis(False)
+            if self.save_results:
+                plt.savefig('results/contours.jpg')
             plt.show()
+
 
     def __search_nonzero_pixel(self, anchor_point, start_point,counter=False):
         for searching_point in clockwise_walking(anchor_point, start_point, counter):
@@ -144,15 +166,22 @@ class ImageSegmentation:
             self.image_rgb = cv.rectangle(self.image_rgb, rect[0], rect[1], (255, 0, 0), 3)
 
     def run(self):
-        self._get_mask(True)
-        self._get_contour(True)
+        self._get_mask()
+        self._get_contour()
         self._get_biggest_boxes(self.bb_square_size, parent=1).keys()
         self._fill_object()
+        self.segmented_img = self.image_rgb.copy()
         self._draw_boxes()
-        plt.imshow(self.image_rgb)
-        plt.title('Final')
-        plt.axis(False)
-        plt.show()
+        if self.show_results:
+            plt.imshow(self.image_rgb)
+            plt.title('Final')
+            plt.axis(False)
+            if self.save_results:
+                plt.savefig('results/final.jpg')
+            plt.show()
+
+
+        return self.segmented_img
 
 
 if __name__ == '__main__':

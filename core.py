@@ -147,7 +147,7 @@ class ImageSegmentation:
     def _get_biggest_boxes(self, thr, parent):
         boxes = {}
         for contour in self.contours:
-            if len(contour) > 0 and self.hierarchy[abs(self.mask_image[contour[0][0], contour[0][1]])] == parent:
+            if len(contour) > 0:
                 x, y, w, h = cv.boundingRect(contour)
                 start = (y, x)
                 end = (y+h, x+w)

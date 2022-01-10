@@ -1,9 +1,9 @@
-## Исходное изображение
+## Original image
 ![Исходное](results/original.jpg)
-## Изображение с маской полученное через HSV модель
+## Image with mask obtained via HSV model
 ![HSV](results/img_with_mask.jpg)
-## Изображение после алгоритма Сузуки (Algorithm Suzuki)
+## Image after algorithm Suzuki (from paper:  Suzuki S. et al. _Topological structural analysis of digitized binary images by border following_)
 ![Suzuki](results/contours.jpg)
-## Сегментированные объекты
+## Segmented objects
 ![segment](results/final.jpg)
 
